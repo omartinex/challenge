@@ -1,0 +1,57 @@
+name: Security and Lint Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  security-and-lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Code checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Setup terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.0 
+
+      # Install TFLint
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.50.0 
+
+      # Install Checkov
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Checkov
+        run: pip install checkov
+
+      # Validate Terraform syntax
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./terraform
+
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./terraform
+
+      # Run TFLint
+      - name: Run TFLint
+        run: tflint --recursive
+        working-directory: ./terraform
+
+      # Run Checkov
+      - name: Run Checkov
+        run: checkov --directory ./terraform --output github_failed_only
